@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Samodzielny build pod Dockera / Coolify
+  output: "standalone",
+  // PGlite (lokalna baza do developmentu) i pg nie powinny być bundlowane
+  serverExternalPackages: ["@electric-sql/pglite", "pg"],
   turbopack: {
     rules: {
       "*.css": {

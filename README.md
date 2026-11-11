@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forum Naukowe — prototyp
 
-## Getting Started
+Forum, na którym zalogowani użytkownicy publikują artykuły, wpisy, notatki, rozprawki, eseje i recenzje.
+Każdy tekst przed publikacją sprawdza AI (Claude).
 
-First, run the development server:
+## Uruchomienie lokalne
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Strona działa pod http://localhost:3000. Bez ustawionego `DATABASE_URL` aplikacja używa lokalnej bazy
+PGlite (PostgreSQL w folderze `.data/`) i przy pierwszym starcie dodaje 6 przykładowych wpisów.
+Aby zacząć od czystej bazy: zatrzymaj serwer i usuń folder `.data`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Konfiguracja — skopiuj `.env.example` do `.env.local` i uzupełnij:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Zmienna | Opis |
+|---|---|
+| `DATABASE_URL` | PostgreSQL, np. `postgres://user:haslo@host:5432/forum`. Puste = PGlite |
+| `ANTHROPIC_API_KEY` | klucz do moderacji AI. Bez niego działa prosty lokalny filtr |
+| `MODERATION_MODEL` | model moderacji, domyślnie `claude-haiku-5-5` |
+| `SEED_DEMO` | `1` = dodaj przykładowe wpisy do pustej bazy |
 
-## Learn More
+## Wdrożenie (GitHub → Coolify)
 
-To learn more about Next.js, take a look at the following resources:
+1. Wypchnij repozytorium na GitHuba.
+2. W Coolify: **New Resource → PostgreSQL** (lub użyj istniejącej bazy).
+3. **New Resource → Application** z repozytorium, Build Pack: **Dockerfile**, port **3000**.
+4. Zmienne środowiskowe: `DATABASE_URL` (wewnętrzny adres bazy z Coolify) i `ANTHROPIC_API_KEY`.
+5. Deploy. Migracje bazy nakładają się automatycznie przy starcie (`src/instrumentation.ts`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Jak to działa
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Funkcja | Gdzie w kodzie |
+|---|---|
+| Lista wpisów (kafelki, filtry, wyszukiwarka) | `src/app/page.tsx` |
+| Widok wpisu: strony A4, znak wodny, podpis autora w prawym dolnym rogu | `src/app/wpis/[id]/page.tsx`, `src/components/document/` |
+| Blur „UPS!” dla niezalogowanych — treść ucinana na serwerze | `src/app/wpis/[id]/page.tsx` (`buildPreview`) |
+| Logowanie i rejestracja (sesje w bazie, hasła bcrypt) | `src/lib/auth.ts`, `src/app/actions/auth.ts` |
+| Edytor (panel, podpowiedzi, pasek narzędzi jak w Wordzie) | `src/components/editor/` |
+| Zapis szkicu, publikacja, moderacja, blokady | `src/app/actions/posts.ts`, `src/lib/moderation.ts` |
+| Mój folder (szkice, opublikowane, 🔴 odrzucone) | `src/app/moj-folder/page.tsx` |
+| Schemat bazy | `src/lib/db/schema.ts` → migracje w `drizzle/` (`npx drizzle-kit generate`) |
 
-## Deploy on Vercel
+### Zasady publikacji
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Minimalna długość: wpis i notatka 150 słów, artykuł 500, rozprawka i esej 400, recenzja 300.
+  Za krótki tekst nie liczy się jako odrzucenie.
+- AI odrzuca wulgaryzmy, hejt, spam i teksty „o niczym”. Odrzucony dokument dostaje czerwone kółko
+  w „Moim folderze”; autor może go poprawić i wysłać ponownie.
+- Każde odrzucenie wygasa po 7 dniach. 5 aktywnych odrzuceń blokuje publikowanie na 7 dni
+  (pisanie i zapisywanie szkiców działa dalej).
+- Edycja opublikowanego dokumentu: czytelnicy widzą poprzednią wersję, dopóki nowa nie przejdzie weryfikacji.

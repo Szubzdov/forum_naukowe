@@ -1,26 +1,163 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-doc), ui-serif, Georgia, serif;
+
+  --color-paper: #f6f5f1;
+  --color-ink: #14161c;
+  --color-muted: #5d6270;
+  --color-line: #e4e2dc;
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #dfe6fd;
+  --color-brand-500: #3d5bd9;
+  --color-brand-600: #2f47b8;
+  --color-brand-700: #263a94;
+  --color-brand-900: #182356;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* ---------- Treść dokumentu (edytor i widok wpisu) ---------- */
+.doc-content {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1b1d23;
+  overflow-wrap: anywhere;
+}
+.doc-content > * + * {
+  margin-top: 0.75em;
+}
+.doc-content h1 {
+  font-size: 1.75em;
+  line-height: 1.25;
+  font-weight: 700;
+  margin-top: 1.1em;
+}
+.doc-content h2 {
+  font-size: 1.35em;
+  line-height: 1.3;
+  font-weight: 700;
+  margin-top: 1em;
+}
+.doc-content h3 {
+  font-size: 1.12em;
+  font-weight: 700;
+  margin-top: 0.9em;
+}
+.doc-content > :first-child {
+  margin-top: 0;
+}
+.doc-content h1.doc-title {
+  font-size: 28px;
+  line-height: 1.2;
+  margin-bottom: 1.1em;
+  letter-spacing: -0.01em;
+}
+.doc-content p {
+  text-align: justify;
+}
+.doc-content p[style*="text-align"] {
+  text-align: inherit;
+}
+.doc-content ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.doc-content ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.doc-content li + li {
+  margin-top: 0.2em;
+}
+.doc-content li > p {
+  text-align: left;
+}
+.doc-content blockquote {
+  border-left: 3px solid var(--color-brand-500);
+  padding: 0.2em 0 0.2em 1em;
+  color: #3f4350;
+  font-style: italic;
+}
+.doc-content a {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.doc-content mark {
+  background: #fdf0a6;
+  padding: 0 0.1em;
+}
+.doc-content hr {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  margin: 1.5em 0;
+}
+.doc-content table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+}
+.doc-content th,
+.doc-content td {
+  border: 1px solid #cfd2da;
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+}
+.doc-content th {
+  background: #f1f2f6;
+  font-weight: 600;
+  text-align: left;
+}
+.doc-content td > p,
+.doc-content th > p {
+  text-align: left;
+  margin: 0;
+}
+
+/* ---------- Edytor TipTap ---------- */
+.tiptap {
+  outline: none;
+  min-height: 60vh;
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #a0a4ae;
+  pointer-events: none;
+  height: 0;
+}
+.tiptap .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(61, 91, 217, 0.12);
+  pointer-events: none;
+}
+.tiptap td,
+.tiptap th {
+  position: relative;
+}
+.tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-brand-500);
+  pointer-events: none;
+}
+.tiptap.resize-cursor {
+  cursor: col-resize;
 }
