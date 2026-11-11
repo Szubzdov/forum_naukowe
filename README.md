@@ -31,6 +31,18 @@ Konfiguracja — skopiuj `.env.example` do `.env.local` i uzupełnij:
 4. Zmienne środowiskowe: `DATABASE_URL` (wewnętrzny adres bazy z Coolify) i `ANTHROPIC_API_KEY`.
 5. Deploy. Migracje bazy nakładają się automatycznie przy starcie (`src/instrumentation.ts`).
 
+## Przeniesienie lokalnej bazy na serwer
+
+1. Zatrzymaj `npm run dev` (lokalnej bazy nie można czytać, gdy działa serwer).
+2. `npm run db:export` — tworzy `database/forum.sql` (schemat + dane, bez kont testowych `@forum.test` i bez sesji).
+   Plik zawiera e-maile i hashe haseł, dlatego jest w `.gitignore`.
+3. Wgraj go do **pustej** bazy PostgreSQL:
+   ```bash
+   psql "postgres://UZYTKOWNIK:HASLO@HOST:5432/BAZA" -f database/forum.sql
+   ```
+   Wszystko wykonuje się w jednej transakcji — przy błędzie baza zostaje bez zmian.
+4. Ustaw `DATABASE_URL` w Coolify na tę bazę. Aplikacja wykryje, że migracje są już wykonane.
+
 ## Jak to działa
 
 | Funkcja | Gdzie w kodzie |

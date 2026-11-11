@@ -42,3 +42,6 @@ next-env.d.ts
 
 # lokalna baza PGlite
 /.data
+
+# eksport bazy (zawiera e-maile i hashe haseł)
+/database/*.sql
