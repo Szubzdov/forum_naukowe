@@ -84,12 +84,12 @@ export function DocumentPages({ title, html, author }: { title: string; html: st
       <div
         ref={measureRef}
         aria-hidden
-        className="doc-content pointer-events-none invisible absolute left-[-9999px] top-0"
+        className="doc-content pointer-events-none invisible absolute print:hidden left-[-9999px] top-0"
         style={{ width: CONTENT_W }}
         dangerouslySetInnerHTML={{ __html: fullHtml }}
       />
       <ScaleToFit>
-        <div className="flex flex-col items-center gap-8">
+        <div className="flex flex-col items-center gap-8 print:gap-0">
           {(pages ?? [fullHtml]).map((pageHtml, i, all) => (
             <PageFrame key={i} author={author} pageNumber={i + 1} pageCount={pages ? all.length : 0}>
               <div className="doc-content" dangerouslySetInnerHTML={{ __html: pageHtml }} />

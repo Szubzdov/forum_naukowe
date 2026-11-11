@@ -38,7 +38,7 @@ export function PageFrame({
 }) {
   return (
     <div
-      className="relative bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_24px_48px_-24px_rgba(0,0,0,0.28)]"
+      className="print-page relative bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_24px_48px_-24px_rgba(0,0,0,0.28)]"
       style={{ width: PAGE_W, minHeight: PAGE_H }}
     >
       <Watermark author={author} />

@@ -20,7 +20,7 @@ export function ScaleToFit({ children }: { children: ReactNode }) {
 
   return (
     <div ref={ref} className="w-full">
-      <div className="mx-auto" style={{ width: PAGE_W, zoom: scale }}>
+      <div data-scale-root className="mx-auto" style={{ width: PAGE_W, zoom: scale }}>
         {children}
       </div>
     </div>

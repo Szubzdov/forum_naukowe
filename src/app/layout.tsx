@@ -30,10 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <Header />
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-line bg-white/60">
+        <footer className="print:hidden border-t border-line bg-white/60">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 text-sm text-muted flex flex-col sm:flex-row gap-2 justify-between">
             <span>© {new Date().getFullYear()} Forum Naukowe</span>
-            <span>Każdy wpis jest weryfikowany przed publikacją.</span>
+            <span>Artykuły, notatki i eseje autorów z całej Polski.</span>
           </div>
         </footer>
       </body>

@@ -10,7 +10,6 @@
     "db:export": "node scripts/export-sql.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.6.0",
     "@electric-sql/pglite": "^0.5.15",
     "@tiptap/extension-highlight": "^3.33.0",
     "@tiptap/extension-subscript": "^3.33.0",
@@ -22,6 +21,7 @@
     "@tiptap/pm": "^3.33.0",
     "@tiptap/react": "^3.33.0",
     "@tiptap/starter-kit": "^3.33.0",
+    "@turbodocx/html-to-docx": "1.23.1",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.70.0",

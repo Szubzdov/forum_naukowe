@@ -28,8 +28,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
               Najnowsze publikacje
             </h1>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
-              Artykuły, notatki, rozprawki i eseje autorów z całej Polski. Każdy tekst przechodzi weryfikację
-              przed publikacją.
+              Artykuły, notatki, rozprawki i eseje autorów z całej Polski. Czytaj, ucz się i publikuj własne teksty.
             </p>
           </div>
 

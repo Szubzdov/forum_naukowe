@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Lock, PenLine } from "lucide-react";
 import { DocumentPages } from "@/components/document/document-pages";
+import { DownloadButtons } from "@/components/document/download-buttons";
 import { PageFrame } from "@/components/document/page-frame";
 import { ScaleToFit } from "@/components/document/scale-to-fit";
 import { TypeBadge } from "@/components/type-badge";
@@ -34,8 +35,8 @@ export default async function PostPage({ params }: PageProps<"/wpis/[id]">) {
   const next = encodeURIComponent(`/wpis/${post.id}`);
 
   return (
-    <main className="pb-20">
-      <div className="mx-auto max-w-[850px] px-4 pt-8 sm:px-6 sm:pt-10">
+    <main className="pb-20 print:pb-0">
+      <div className="mx-auto max-w-[850px] px-4 pt-8 sm:px-6 sm:pt-10 print:hidden">
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Wszystkie wpisy
         </Link>
@@ -64,18 +65,21 @@ export default async function PostPage({ params }: PageProps<"/wpis/[id]">) {
               </p>
             </div>
           </div>
-          {isAuthor && (
+          <div className="flex flex-wrap items-center gap-2">
+            {user && <DownloadButtons postId={post.id} title={title} />}
+            {isAuthor && (
             <Link
               href={`/edytor/${post.id}`}
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-medium hover:bg-paper"
             >
               <PenLine className="h-4 w-4" /> Edytuj
             </Link>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-10 px-3 sm:px-6">
+      <div className="mt-10 px-3 sm:px-6 print:m-0 print:p-0">
         {user ? (
           <DocumentPages title={title} html={post.html ?? ""} author={post.authorName} />
         ) : (

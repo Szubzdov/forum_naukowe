@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EditorWorkspace } from "@/components/editor/editor-workspace";
 import { requireUser } from "@/lib/auth";
-import { getCategoryNames, getPostForEdit, getPublishState } from "@/lib/queries";
+import { getCategoryNames, getPostForEdit } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Edycja dokumentu" };
 
 export default async function EditDocumentPage({ params }: PageProps<"/edytor/[id]">) {
   const { id } = await params;
   const user = await requireUser(`/edytor/${id}`);
-  const [post, categories, state] = await Promise.all([
+  const [post, categories] = await Promise.all([
     getPostForEdit(id, user.id),
     getCategoryNames(),
-    getPublishState(user.id),
   ]);
   if (!post) notFound();
 
@@ -27,14 +26,10 @@ export default async function EditDocumentPage({ params }: PageProps<"/edytor/[i
         type: post.type,
         contentJson: post.contentJson,
         contentHtml: post.contentHtml,
-        moderationStatus: post.moderationStatus,
-        rejectionReason: post.rejectionReason,
         isPublished: !!post.publishedAt,
       }}
       categories={categories}
       authorName={user.name}
-      activeRejections={state.activeRejections}
-      blockedUntil={state.blockedUntil?.toISOString() ?? null}
     />
   );
 }

@@ -20,6 +20,34 @@ html {
   color-scheme: light;
 }
 
+/* ---------- Druk / „Zapisz jako PDF”: tylko strony A4, bez marginesów przeglądarki ---------- */
+@page {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  [data-scale-root] {
+    zoom: 1 !important;
+  }
+  .print-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    box-shadow: none !important;
+    break-after: page;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-page:last-child {
+    break-after: auto;
+  }
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

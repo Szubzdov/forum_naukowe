@@ -17,15 +17,6 @@ export function getTextType(value: string | null | undefined): TextType {
   return TEXT_TYPES.find((t) => t.value === value) ?? TEXT_TYPES[0];
 }
 
-/** Ile aktywnych odrzuceń powoduje blokadę publikowania */
-export const REJECTION_LIMIT = 5;
-/** Po ilu dniach pojedyncze odrzucenie wygasa */
-export const REJECTION_TTL_DAYS = 7;
-/** Na ile dni blokowane jest publikowanie */
-export const PUBLISH_BLOCK_DAYS = 7;
-
-export const DAY_MS = 24 * 60 * 60 * 1000;
-
 export function countWords(text: string): number {
   const words = text.trim().match(/[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu);
   return words ? words.length : 0;

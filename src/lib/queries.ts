@@ -1,10 +1,9 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, ilike, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, schema } from "@/lib/db";
-import { DAY_MS, REJECTION_TTL_DAYS } from "@/lib/constants";
 
-const { posts, users, categories, moderationLogs } = schema;
+const { posts, users, categories } = schema;
 
 export async function listPublishedPosts(filters: { type?: string; q?: string }) {
   const conditions = [isNotNull(posts.publishedAt)];
@@ -105,23 +104,3 @@ export async function getCategoryNames() {
 }
 
 /** Aktywne odrzucenia (młodsze niż 7 dni) i ewentualna blokada publikowania */
-export async function getPublishState(userId: string) {
-  const since = new Date(Date.now() - REJECTION_TTL_DAYS * DAY_MS);
-  const [{ value: activeRejections }] = await db
-    .select({ value: count() })
-    .from(moderationLogs)
-    .where(
-      and(
-        eq(moderationLogs.userId, userId),
-        eq(moderationLogs.result, "rejected"),
-        gt(moderationLogs.createdAt, since),
-      ),
-    );
-  const [user] = await db
-    .select({ blockedUntil: users.publishBlockedUntil })
-    .from(users)
-    .where(eq(users.id, userId));
-  const blockedUntil =
-    user?.blockedUntil && user.blockedUntil.getTime() > Date.now() ? user.blockedUntil : null;
-  return { activeRejections, blockedUntil };
-}

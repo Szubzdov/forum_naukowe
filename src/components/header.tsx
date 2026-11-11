@@ -8,7 +8,7 @@ export async function Header() {
   const user = await getCurrentUser();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-md">
+    <header className="print:hidden sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Forum Naukowe — strona główna">
           <Logo />

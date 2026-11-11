@@ -14,16 +14,13 @@ import { Placeholder } from "@tiptap/extensions";
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle2,
   ChevronDown,
   Loader2,
-  Lock,
   Save,
   Send,
-  ShieldCheck,
 } from "lucide-react";
 import { publishPost, saveDraft, type DraftInput } from "@/app/actions/posts";
-import { REJECTION_LIMIT, TEXT_TYPES, countWords, formatDate, getTextType } from "@/lib/constants";
+import { TEXT_TYPES, countWords, getTextType } from "@/lib/constants";
 import { FORMAT_TIPS, HINTS } from "./hints";
 import { Toolbar } from "./toolbar";
 
@@ -35,16 +32,8 @@ export type EditorInitial = {
   type: string;
   contentJson: unknown;
   contentHtml: string;
-  moderationStatus: string;
-  rejectionReason: string | null;
   isPublished: boolean;
 };
-
-type Notice =
-  | { kind: "rejected"; text: string }
-  | { kind: "error"; text: string }
-  | { kind: "success"; text: string }
-  | null;
 
 const fieldCls =
   "mt-1.5 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100";
@@ -53,14 +42,10 @@ export function EditorWorkspace({
   initial,
   categories,
   authorName,
-  activeRejections: initialRejections,
-  blockedUntil: initialBlockedUntil,
 }: {
   initial: EditorInitial;
   categories: string[];
   authorName: string;
-  activeRejections: number;
-  blockedUntil: string | null;
 }) {
   const router = useRouter();
   const [id, setId] = useState(initial.id);
@@ -70,18 +55,8 @@ export function EditorWorkspace({
   const [type, setType] = useState(initial.type);
   const [dirty, setDirty] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const [status, setStatus] = useState({
-    rejected: initial.moderationStatus === "rejected",
-    reason: initial.rejectionReason,
-    published: initial.isPublished,
-  });
-  const [rejections, setRejections] = useState(initialRejections);
-  const [blockedUntil, setBlockedUntil] = useState(initialBlockedUntil);
-  const [notice, setNotice] = useState<Notice>(
-    initial.moderationStatus === "rejected" && initial.rejectionReason
-      ? { kind: "rejected", text: initial.rejectionReason }
-      : null,
-  );
+  const published = initial.isPublished;
+  const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [publishing, startPublishing] = useTransition();
 
@@ -114,8 +89,6 @@ export function EditorWorkspace({
   }) ?? 0;
 
   const textType = getTextType(type);
-  // serwer przekazuje datę blokady tylko wtedy, gdy blokada jeszcze trwa
-  const isBlocked = !!blockedUntil;
   const busy = saving || publishing;
 
   const payload = useCallback((): DraftInput | null => {
@@ -148,7 +121,7 @@ export function EditorWorkspace({
         setSavedAt(new Date(res.savedAt));
         setDirty(false);
       } else {
-        setNotice({ kind: "error", text: res.error });
+        setError(res.error);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +130,7 @@ export function EditorWorkspace({
   const onPublish = () => {
     const data = payload();
     if (!data) return;
-    setNotice(null);
+    setError(null);
     startPublishing(async () => {
       const res = await publishPost(data);
       if (res.ok) {
@@ -170,14 +143,7 @@ export function EditorWorkspace({
         setDirty(false);
         setSavedAt(new Date());
       }
-      if (res.activeRejections !== undefined) setRejections(res.activeRejections);
-      if (res.blockedUntil) setBlockedUntil(res.blockedUntil);
-      if (res.rejected) {
-        setStatus((s) => ({ ...s, rejected: true, reason: res.error }));
-        setNotice({ kind: "rejected", text: res.error });
-      } else {
-        setNotice({ kind: "error", text: res.error });
-      }
+      setError(res.error);
     });
   };
 
@@ -217,7 +183,7 @@ export function EditorWorkspace({
             <Link href="/moj-folder" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
               <ArrowLeft className="h-4 w-4" /> Mój folder
             </Link>
-            <StatusPill rejected={status.rejected} published={status.published} />
+            <StatusPill published={published} />
           </div>
 
           <label className="block text-sm font-medium">
@@ -288,23 +254,10 @@ export function EditorWorkspace({
             </div>
           </div>
 
-          {notice && <NoticeBox notice={notice} />}
-
-          {isBlocked ? (
-            <div className="flex gap-2.5 rounded-xl bg-red-50 p-3 text-sm text-red-900 ring-1 ring-inset ring-red-200">
-              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>
-                Publikowanie zablokowane do <strong>{formatDate(blockedUntil)}</strong>. Możesz nadal pisać i zapisywać
-                szkice.
-              </p>
+          {error && (
+            <div className="flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
             </div>
-          ) : (
-            rejections > 0 && (
-              <p className="text-xs text-muted">
-                Aktywne odrzucenia: <strong className="text-ink">{rejections}/{REJECTION_LIMIT}</strong>. Każde wygasa po
-                7 dniach.
-              </p>
-            )
           )}
 
           <div className="grid grid-cols-2 gap-2.5">
@@ -320,30 +273,22 @@ export function EditorWorkspace({
             <button
               type="button"
               onClick={onPublish}
-              disabled={busy || !editor || isBlocked}
+              disabled={busy || !editor}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
             >
               {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {status.published ? "Opublikuj zmiany" : "Publikuj"}
+              {published ? "Opublikuj zmiany" : "Publikuj"}
             </button>
           </div>
           <p className="-mt-2 text-xs text-muted">
             {publishing
-              ? "Trwa weryfikacja treści…"
+              ? "Publikowanie…"
               : savedAt
                 ? `Zapisano o ${savedAt.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}`
                 : dirty
                   ? "Masz niezapisane zmiany."
                   : " "}
           </p>
-
-          <div className="flex gap-2.5 rounded-xl bg-paper p-3 text-xs leading-relaxed text-muted">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-brand-600" />
-            <p>
-              Przed publikacją tekst sprawdza AI: wulgaryzmy, spam i treści „o niczym”.
-              {status.published && " Do czasu zatwierdzenia zmian czytelnicy widzą poprzednią wersję."}
-            </p>
-          </div>
 
           <div className="space-y-2 pt-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted">Podpowiedzi</p>
@@ -384,13 +329,7 @@ export function EditorWorkspace({
   );
 }
 
-function StatusPill({ rejected, published }: { rejected: boolean; published: boolean }) {
-  if (rejected)
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-800 ring-1 ring-inset ring-red-200">
-        <span className="h-2 w-2 rounded-full bg-red-600" /> Odrzucony
-      </span>
-    );
+function StatusPill({ published }: { published: boolean }) {
   if (published)
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
@@ -401,30 +340,6 @@ function StatusPill({ rejected, published }: { rejected: boolean; published: boo
     <span className="inline-flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 text-xs font-medium text-muted ring-1 ring-inset ring-line">
       <span className="h-2 w-2 rounded-full bg-slate-400" /> Szkic
     </span>
-  );
-}
-
-function NoticeBox({ notice }: { notice: NonNullable<Notice> }) {
-  if (notice.kind === "rejected")
-    return (
-      <div className="rounded-xl bg-red-50 p-3 text-sm text-red-900 ring-1 ring-inset ring-red-200">
-        <p className="flex items-center gap-2 font-semibold">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-600" /> Dokument nie przeszedł weryfikacji
-        </p>
-        <p className="mt-1.5 leading-relaxed">{notice.text}</p>
-        <p className="mt-1.5 text-xs text-red-800/80">Popraw tekst i wyślij go ponownie.</p>
-      </div>
-    );
-  if (notice.kind === "success")
-    return (
-      <div className="flex gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-inset ring-emerald-200">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {notice.text}
-      </div>
-    );
-  return (
-    <div className="flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-200">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {notice.text}
-    </div>
   );
 }
 
