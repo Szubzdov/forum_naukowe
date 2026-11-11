@@ -70,7 +70,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/wpis/[id]/po
   }
 
   const docHtml = `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head><body><h1>${escapeHtml(title)}</h1>${html}</body></html>`;
-  const footerHtml = `<p style="text-align: right;"><span style="font-size: 9pt; color: #5d6270;">${escapeHtml(post.authorName)}</span></p>`;
+  // Biblioteka dopisuje numer strony na końcu stopki → „Autor · strona 3” w prawym dolnym rogu
+  const footerHtml = `<p style="text-align: right;"><span style="font-size: 9pt; color: #5d6270;">${escapeHtml(post.authorName)} · strona </span></p>`;
 
   const file = await HTMLtoDOCX(
     docHtml,
