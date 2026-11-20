@@ -1,8 +1,10 @@
 import path from "node:path";
-import { db, schema } from "./index";
+import { assertDatabaseConfigured, db, describeDatabase, schema } from "./index";
 import { seedDemo } from "./seed";
 
 export async function setupDatabase() {
+  assertDatabaseConfigured();
+  console.log(`[db] Baza danych: ${describeDatabase()}`);
   const migrationsFolder = path.join(process.cwd(), "drizzle");
 
   if (process.env.DATABASE_URL) {
@@ -13,6 +15,8 @@ export async function setupDatabase() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await migrate(db as any, { migrationsFolder });
   }
+
+  console.log(`[db] Gotowe. Dokumentów w bazie: ${await db.$count(schema.posts)}`);
 
   const shouldSeed = process.env.SEED_DEMO ?? (process.env.NODE_ENV === "production" ? "0" : "1");
   if (shouldSeed === "1") {

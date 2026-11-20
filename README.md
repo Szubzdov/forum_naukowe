@@ -59,7 +59,10 @@ Konfiguracja — skopiuj `.env.example` do `.env.local` i uzupełnij:
 
 ### Zasady publikacji
 
-- Wymagane: tytuł, kategoria i minimalna długość — wpis i notatka 150 słów, artykuł 500,
+- Kategorie: od 1 do 5 na dokument (pole jak tagi — Enter lub przecinek dodaje kategorię).
+  Kliknięcie kategorii na stronie wpisu pokazuje wszystkie wpisy z tej kategorii.
+- Edytor pokazuje kartki A4 z takim samym podziałem na strony jak widok wpisu (na wąskich ekranach — tekst ciągły).
+- Wymagane: tytuł, co najmniej jedna kategoria i minimalna długość — wpis i notatka 150 słów, artykuł 500,
   rozprawka i esej 400, recenzja 300. „Publikuj” od razu publikuje dokument (bez weryfikacji).
 - Edycja opublikowanego dokumentu: zapisane zmiany są widoczne dla czytelników dopiero
   po kliknięciu „Opublikuj zmiany”.

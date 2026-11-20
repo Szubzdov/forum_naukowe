@@ -14,7 +14,7 @@ export default async function NewDocumentPage() {
       initial={{
         title: "",
         description: "",
-        category: "",
+        categories: [],
         type: "wpis",
         contentJson: null,
         contentHtml: "",

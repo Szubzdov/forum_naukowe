@@ -13,6 +13,9 @@ export const TEXT_TYPES: TextType[] = [
   { value: "recenzja", label: "Recenzja", minWords: 300 },
 ];
 
+/** Ile kategorii może mieć jeden dokument */
+export const MAX_CATEGORIES = 5;
+
 export function getTextType(value: string | null | undefined): TextType {
   return TEXT_TYPES.find((t) => t.value === value) ?? TEXT_TYPES[0];
 }

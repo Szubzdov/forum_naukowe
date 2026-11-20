@@ -24,13 +24,16 @@ import {
 import { publishPost, saveDraft, type DraftInput } from "@/app/actions/posts";
 import { TEXT_TYPES, countWords, getTextType } from "@/lib/constants";
 import { FORMAT_TIPS, HINTS } from "./hints";
+import { PAD_TOP, PAD_X, PAGE_H, PAGE_W } from "@/components/document/page-frame";
+import { CategoryInput } from "./category-input";
+import { PAGE_GAP, Pagination } from "./pagination";
 import { Toolbar } from "./toolbar";
 
 export type EditorInitial = {
   id?: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   type: string;
   contentJson: unknown;
   contentHtml: string;
@@ -53,7 +56,7 @@ export function EditorWorkspace({
   const [id, setId] = useState(initial.id);
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
-  const [category, setCategory] = useState(initial.category);
+  const [categoryList, setCategoryList] = useState(initial.categories);
   const [type, setType] = useState(initial.type);
   const [dirty, setDirty] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -65,6 +68,10 @@ export function EditorWorkspace({
   const [importInfo, setImportInfo] = useState<{ file: string; notes: string[] } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Podział na strony A4 — tylko gdy kartka mieści się na ekranie w pełnej szerokości
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [paged, setPaged] = useState(false);
+  const [pages, setPages] = useState(1);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -81,6 +88,7 @@ export function EditorWorkspace({
       Highlight,
       TableKit.configure({ table: { resizable: false } }),
       Placeholder.configure({ placeholder: "Zacznij pisać, wklej tekst z Worda albo prześlij plik…" }),
+      Pagination.configure({ onPageCount: (n) => setPages(n) }),
     ],
     content: (initial.contentJson as object | null) ?? (initial.contentHtml || ""),
     editorProps: {
@@ -103,12 +111,12 @@ export function EditorWorkspace({
       id,
       title,
       description,
-      category,
+      categories: categoryList,
       type,
       contentJson: editor.getJSON(),
       contentHtml: editor.getHTML(),
     };
-  }, [editor, id, title, description, category, type]);
+  }, [editor, id, title, description, categoryList, type]);
 
   const afterSave = (newId: string) => {
     if (!id) {
@@ -189,6 +197,20 @@ export function EditorWorkspace({
       if (fileInput.current) fileInput.current.value = "";
     }
   };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const cs = getComputedStyle(el);
+      const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      setPaged(inner >= PAGE_W);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Ctrl+S = zapisz szkic
   useEffect(() => {
@@ -306,23 +328,12 @@ export function EditorWorkspace({
             <span className="mt-1 block text-right text-xs font-normal text-muted">{description.length}/400</span>
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block text-sm font-medium">
-              Kategoria
-              <input
-                value={category}
-                onChange={(e) => touch(setCategory)(e.target.value)}
-                list="category-list"
-                maxLength={60}
-                placeholder="Np. Biologia"
-                className={`${fieldCls} h-10`}
-              />
-              <datalist id="category-list">
-                {categories.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </label>
+          <div className="block text-sm font-medium">
+            Kategorie
+            <CategoryInput value={categoryList} onChange={touch(setCategoryList)} suggestions={categories} />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium">
               Rodzaj tekstu
               <select value={type} onChange={(e) => touch(setType)(e.target.value)} className={`${fieldCls} h-10`}>
@@ -413,12 +424,44 @@ export function EditorWorkspace({
         <div className="sticky top-16 z-10 border-b border-line bg-white/95 backdrop-blur lg:static">
           {editor ? <Toolbar editor={editor} /> : <div className="h-11" />}
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-8 sm:py-10">
-          <div className="mx-auto w-full max-w-[210mm] rounded-sm bg-white px-6 py-10 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_20px_40px_-20px_rgba(0,0,0,0.25)] sm:px-[20mm] sm:py-[22mm] min-h-[297mm]">
-            {title && <h1 className="mb-6 font-serif text-[28px] font-bold leading-tight">{title}</h1>}
-            <EditorContent editor={editor} />
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-6 sm:px-8 sm:py-10">
+          <div
+            className={
+              paged
+                ? "relative mx-auto"
+                : "mx-auto w-full max-w-[210mm] rounded-sm bg-white px-6 py-10 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_20px_40px_-20px_rgba(0,0,0,0.25)] sm:px-[20mm] sm:py-[22mm] min-h-[297mm]"
+            }
+            data-paged={paged ? "true" : undefined}
+            style={paged ? { width: PAGE_W, minHeight: pages * PAGE_H + (pages - 1) * PAGE_GAP } : undefined}
+          >
+            {paged &&
+              Array.from({ length: pages }, (_, i) => (
+                <div
+                  key={i}
+                  aria-hidden
+                  className="pointer-events-none absolute left-0 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08),0_20px_40px_-20px_rgba(0,0,0,0.25)]"
+                  style={{ top: i * (PAGE_H + PAGE_GAP), width: PAGE_W, height: PAGE_H }}
+                >
+                  <span className="absolute bottom-[22px] left-[30px] font-sans text-[10.5px] text-[#8a8f9c]">
+                    {i + 1} / {pages}
+                  </span>
+                  <span className="absolute bottom-[22px] right-[30px] font-sans text-[10.5px] font-medium text-[#5d6270]">
+                    {authorName}
+                  </span>
+                </div>
+              ))}
+            <div className={paged ? "relative" : undefined} style={paged ? { padding: `${PAD_TOP}px ${PAD_X}px 0` } : undefined}>
+              <div data-page-content>
+                {title && (
+                  <div className="doc-content">
+                    <h1 className="doc-title">{title}</h1>
+                  </div>
+                )}
+                <EditorContent editor={editor} />
+              </div>
+            </div>
           </div>
-          <p className="mx-auto mt-4 max-w-[210mm] text-right text-xs text-muted">Autor: {authorName}</p>
+          {!paged && <p className="mx-auto mt-4 max-w-[210mm] text-right text-xs text-muted">Autor: {authorName}</p>}
         </div>
       </section>
     </div>

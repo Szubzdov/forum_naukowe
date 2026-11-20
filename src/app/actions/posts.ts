@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { TEXT_TYPES, countWords, getTextType, htmlToText } from "@/lib/constants";
+import { MAX_CATEGORIES, TEXT_TYPES, countWords, getTextType, htmlToText } from "@/lib/constants";
 import { cleanHtml } from "@/lib/sanitize";
 
 const { posts, categories } = schema;
@@ -14,7 +14,7 @@ const DraftSchema = z.object({
   id: z.string().optional(),
   title: z.string().max(200),
   description: z.string().max(400),
-  category: z.string().max(60),
+  categories: z.array(z.string().max(60)).max(MAX_CATEGORIES),
   type: z.enum(TEXT_TYPES.map((t) => t.value) as [string, ...string[]]),
   contentJson: z.unknown(),
   contentHtml: z.string().max(2_000_000),
@@ -53,6 +53,16 @@ async function findOrCreateCategory(name: string): Promise<string | null> {
   return again?.id ?? null;
 }
 
+/** Lista nazw → lista id kategorii (bez pustych i bez powtórzeń, kolejność zachowana) */
+async function resolveCategories(names: string[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const name of names) {
+    const id = await findOrCreateCategory(name);
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids.slice(0, MAX_CATEGORIES);
+}
+
 /** Zapisuje wersję roboczą. Opublikowana wersja pozostaje bez zmian. */
 async function persistDraft(userId: string, input: DraftInput) {
   const html = cleanHtml(input.contentHtml);
@@ -60,7 +70,7 @@ async function persistDraft(userId: string, input: DraftInput) {
   const values = {
     title: input.title.trim(),
     description: input.description.trim(),
-    categoryId: await findOrCreateCategory(input.category),
+    categoryIds: await resolveCategories(input.categories),
     type: input.type,
     contentJson: input.contentJson ?? null,
     contentHtml: html,
@@ -112,7 +122,9 @@ export async function publishPost(raw: DraftInput): Promise<PublishResult> {
 
   // 2. Wymagane pola formularza
   if (!saved.title) return { ok: false, id: saved.id, error: "Dodaj tytuł dokumentu." };
-  if (!saved.categoryId) return { ok: false, id: saved.id, error: "Wpisz kategorię dokumentu." };
+  if (saved.categoryIds.length === 0) {
+    return { ok: false, id: saved.id, error: "Dodaj co najmniej jedną kategorię dokumentu." };
+  }
   if (saved.wordCount < textType.minWords) {
     return {
       ok: false,
@@ -130,7 +142,7 @@ export async function publishPost(raw: DraftInput): Promise<PublishResult> {
       rejectionReason: null,
       publishedTitle: saved.title,
       publishedDescription: saved.description,
-      publishedCategoryId: saved.categoryId,
+      publishedCategoryIds: saved.categoryIds,
       publishedType: saved.type,
       publishedHtml: saved.contentHtml,
       publishedText: saved.contentText,

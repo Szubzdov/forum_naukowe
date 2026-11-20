@@ -43,7 +43,15 @@ export default async function PostPage({ params }: PageProps<"/wpis/[id]">) {
 
         <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
           <TypeBadge type={post.type} />
-          {post.category && <span className="font-medium text-muted">{post.category}</span>}
+          {post.categories.map((c) => (
+            <Link
+              key={c}
+              href={`/?kategoria=${encodeURIComponent(c)}`}
+              className="rounded-full bg-white px-2.5 py-0.5 font-medium text-muted ring-1 ring-line hover:text-ink hover:ring-ink/30"
+            >
+              {c}
+            </Link>
+          ))}
         </div>
         <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight tracking-tight sm:text-[40px]">{title}</h1>
         {post.description && <p className="mt-3 text-[16px] leading-relaxed text-muted">{post.description}</p>}

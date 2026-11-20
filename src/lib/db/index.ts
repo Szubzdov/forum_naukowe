@@ -10,7 +10,33 @@ type DB = NodePgDatabase<typeof schema>;
 
 const globalForDb = globalThis as unknown as { __db?: DB };
 
+/**
+ * Na serwerze (produkcja) baza w kontenerze znikałaby przy każdym wdrożeniu razem z dokumentami,
+ * dlatego bez DATABASE_URL aplikacja w ogóle nie startuje.
+ */
+export function assertDatabaseConfigured() {
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production" && process.env.ALLOW_LOCAL_DB !== "1") {
+    throw new Error(
+      "[db] Brak zmiennej DATABASE_URL. Ustaw ją w Coolify (Environment Variables → DATABASE_URL = adres bazy PostgreSQL) " +
+        "i wdróż ponownie. Bez niej dokumenty zapisywałyby się w kontenerze i znikały przy każdym wdrożeniu.",
+    );
+  }
+}
+
+/** Opis bazy do logów — bez hasła */
+export function describeDatabase(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) return `PGlite (lokalny plik ${process.env.PGLITE_DIR ?? "./.data/pglite"})`;
+  try {
+    const u = new URL(url);
+    return `PostgreSQL ${u.hostname}:${u.port || "5432"}${u.pathname}`;
+  } catch {
+    return "PostgreSQL (nieczytelny adres w DATABASE_URL)";
+  }
+}
+
 function createDb(): DB {
+  assertDatabaseConfigured();
   const url = process.env.DATABASE_URL;
   if (url) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports

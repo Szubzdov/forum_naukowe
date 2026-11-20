@@ -13,15 +13,27 @@ const CONTENT_W = PAGE_W - 2 * PAD_X;
 function paginate(container: HTMLElement): string[] {
   const pages: string[][] = [[]];
   let used = 0;
+  // ostatni blok na bieżącej stronie — nagłówek nie może zostać sam na dole strony
+  let lastHeading: { html: string; h: number } | null = null;
 
   const fits = (h: number) => used === 0 || used + h <= CONTENT_H;
-  const place = (html: string, h: number) => {
-    if (!fits(h)) {
+  const newPage = () => {
+    const current = pages[pages.length - 1];
+    if (lastHeading && current.length > 1 && current[current.length - 1] === lastHeading.html) {
+      current.pop();
+      pages.push([lastHeading.html]);
+      used = lastHeading.h;
+    } else {
       pages.push([]);
       used = 0;
     }
+    lastHeading = null;
+  };
+  const place = (html: string, h: number, isHeading = false) => {
+    if (!fits(h)) newPage();
     pages[pages.length - 1].push(html);
     used += h;
+    lastHeading = isHeading ? { html, h } : null;
   };
 
   const blocks = Array.from(container.children) as HTMLElement[];
@@ -47,8 +59,11 @@ function paginate(container: HTMLElement): string[] {
         const liH = liNext ? liNext.offsetTop - li.offsetTop : li.offsetHeight + 12;
         if (used + chunkH + liH > CONTENT_H && (chunk.length || used > 0)) {
           flush();
-          pages.push([]);
-          used = 0;
+          if (chunk.length) {
+            pages.push([]);
+            used = 0;
+            lastHeading = null;
+          } else newPage(); // lista nie mieści się od pierwszego punktu — nagłówek idzie z nią
           chunkStart = start + j;
           chunk = [];
           chunkH = 0;
@@ -59,7 +74,7 @@ function paginate(container: HTMLElement): string[] {
       flush();
       return;
     }
-    place(el.outerHTML, h);
+    place(el.outerHTML, h, /^H[1-6]$/.test(el.tagName));
   });
 
   return pages.map((p) => p.join(""));

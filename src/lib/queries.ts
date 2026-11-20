@@ -1,13 +1,25 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { type AnyColumn, and, asc, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 
 const { posts, users, categories } = schema;
 
-export async function listPublishedPosts(filters: { type?: string; q?: string }) {
+/** Nazwy kategorii z listy id (w kolejności wpisania przez autora) */
+function categoryNames(column: AnyColumn) {
+  return sql<string[]>`coalesce(array(
+    select c.name from unnest(${column}) with ordinality as u(id, ord)
+    join ${categories} c on c.id = u.id order by u.ord
+  ), '{}')`;
+}
+
+export async function listPublishedPosts(filters: { type?: string; q?: string; category?: string }) {
   const conditions = [isNotNull(posts.publishedAt)];
   if (filters.type) conditions.push(eq(posts.publishedType, filters.type));
+  if (filters.category) {
+    conditions.push(
+      sql`exists (select 1 from ${categories} c where c.id = any(${posts.publishedCategoryIds}) and lower(c.name) = lower(${filters.category}))`,
+    );
+  }
   if (filters.q) {
     const like = `%${filters.q}%`;
     conditions.push(or(ilike(posts.publishedTitle, like), ilike(posts.publishedDescription, like))!);
@@ -22,11 +34,10 @@ export async function listPublishedPosts(filters: { type?: string; q?: string })
       excerpt: sql<string | null>`left(${posts.publishedText}, 600)`,
       publishedAt: posts.firstPublishedAt,
       authorName: users.name,
-      category: categories.name,
+      categories: categoryNames(posts.publishedCategoryIds),
     })
     .from(posts)
     .innerJoin(users, eq(users.id, posts.authorId))
-    .leftJoin(categories, eq(categories.id, posts.publishedCategoryId))
     .where(and(...conditions))
     .orderBy(desc(posts.firstPublishedAt))
     .limit(60);
@@ -46,18 +57,16 @@ export async function getPublishedPost(id: string) {
       firstPublishedAt: posts.firstPublishedAt,
       publishedAt: posts.publishedAt,
       authorName: users.name,
-      category: categories.name,
+      categories: categoryNames(posts.publishedCategoryIds),
     })
     .from(posts)
     .innerJoin(users, eq(users.id, posts.authorId))
-    .leftJoin(categories, eq(categories.id, posts.publishedCategoryId))
     .where(and(eq(posts.id, id), isNotNull(posts.publishedAt)))
     .limit(1);
   return rows[0] ?? null;
 }
 
 export async function getMyPosts(userId: string) {
-  const draftCategory = alias(categories, "draft_category");
   return db
     .select({
       id: posts.id,
@@ -69,10 +78,9 @@ export async function getMyPosts(userId: string) {
       rejectionReason: posts.rejectionReason,
       publishedAt: posts.publishedAt,
       updatedAt: posts.updatedAt,
-      category: draftCategory.name,
+      categories: categoryNames(posts.categoryIds),
     })
     .from(posts)
-    .leftJoin(draftCategory, eq(draftCategory.id, posts.categoryId))
     .where(eq(posts.authorId, userId))
     .orderBy(desc(posts.updatedAt));
 }
@@ -89,10 +97,9 @@ export async function getPostForEdit(id: string, userId: string) {
       moderationStatus: posts.moderationStatus,
       rejectionReason: posts.rejectionReason,
       publishedAt: posts.publishedAt,
-      category: categories.name,
+      categories: categoryNames(posts.categoryIds),
     })
     .from(posts)
-    .leftJoin(categories, eq(categories.id, posts.categoryId))
     .where(and(eq(posts.id, id), eq(posts.authorId, userId)))
     .limit(1);
   return rows[0] ?? null;

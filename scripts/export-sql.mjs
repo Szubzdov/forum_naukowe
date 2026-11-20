@@ -15,6 +15,7 @@ function lit(v) {
   if (v instanceof Date) return `'${v.toISOString()}'`;
   if (typeof v === "number" || typeof v === "bigint") return String(v);
   if (typeof v === "boolean") return v ? "true" : "false";
+  if (Array.isArray(v)) return v.length ? `ARRAY[${v.map(lit).join(", ")}]::text[]` : "'{}'::text[]";
   if (typeof v === "object") return `'${JSON.stringify(v).replaceAll("'", "''")}'::jsonb`;
   return `'${String(v).replaceAll("'", "''")}'`;
 }

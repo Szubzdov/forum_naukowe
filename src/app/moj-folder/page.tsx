@@ -72,7 +72,7 @@ export default async function MyFolderPage() {
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
                         <TypeBadge type={doc.type} />
-                        {doc.category && <span>{doc.category}</span>}
+                        {doc.categories.length > 0 && <span>{doc.categories.join(", ")}</span>}
                         <span>{doc.wordCount} słów</span>
                         <span>edytowano {formatDate(doc.updatedAt)}</span>
                         {published && <span className="text-emerald-700">opublikowano</span>}

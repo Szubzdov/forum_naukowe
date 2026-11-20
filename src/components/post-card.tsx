@@ -10,7 +10,7 @@ export type PostCardData = {
   title: string | null;
   description: string | null;
   type: string | null;
-  category: string | null;
+  categories: string[];
   wordCount: number | null;
   excerpt: string | null;
   publishedAt: Date | null;
@@ -90,7 +90,12 @@ export function PostCard({ post, featured = false }: { post: PostCardData; featu
             <span className="rounded-full bg-ink px-2.5 py-0.5 font-semibold text-white">Najnowsze</span>
           )}
           <TypeBadge type={post.type} />
-          {post.category && <span className="truncate font-medium text-muted">{post.category}</span>}
+          {post.categories.length > 0 && (
+            <span className="min-w-0 truncate font-medium text-muted">
+              {post.categories.slice(0, 3).join(" · ")}
+              {post.categories.length > 3 && ` +${post.categories.length - 3}`}
+            </span>
+          )}
         </div>
 
         <h2

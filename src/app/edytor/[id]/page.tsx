@@ -22,7 +22,7 @@ export default async function EditDocumentPage({ params }: PageProps<"/edytor/[i
         id: post.id,
         title: post.title,
         description: post.description,
-        category: post.category ?? "",
+        categories: post.categories,
         type: post.type,
         contentJson: post.contentJson,
         contentHtml: post.contentHtml,

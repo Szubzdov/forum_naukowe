@@ -134,19 +134,19 @@ export async function seedDemo() {
     const text = htmlToText(html);
     const words = countWords(text);
     const date = new Date(Date.now() - d.daysAgo * 24 * 60 * 60 * 1000);
-    const categoryId = categoryIds.get(d.category)!;
+    const ids = [categoryIds.get(d.category)!];
     await db.insert(schema.posts).values({
       authorId: authorIds.get(d.author)!,
       title: d.title,
       description: d.description,
-      categoryId,
+      categoryIds: ids,
       type: d.type,
       contentHtml: html,
       contentText: text,
       wordCount: words,
       publishedTitle: d.title,
       publishedDescription: d.description,
-      publishedCategoryId: categoryId,
+      publishedCategoryIds: ids,
       publishedType: d.type,
       publishedHtml: html,
       publishedText: text,

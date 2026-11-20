@@ -63,7 +63,8 @@ export const posts = pgTable(
     // wersja robocza
     title: text("title").notNull().default(""),
     description: text("description").notNull().default(""),
-    categoryId: text("category_id").references(() => categories.id),
+    // kilka kategorii (id z tabeli categories, w kolejności wpisania)
+    categoryIds: text("category_ids").array().notNull().default(sql`'{}'::text[]`),
     type: text("type").notNull().default("wpis"),
     contentJson: jsonb("content_json"),
     contentHtml: text("content_html").notNull().default(""),
@@ -77,7 +78,7 @@ export const posts = pgTable(
     // wersja opublikowana
     publishedTitle: text("published_title"),
     publishedDescription: text("published_description"),
-    publishedCategoryId: text("published_category_id").references(() => categories.id),
+    publishedCategoryIds: text("published_category_ids").array(),
     publishedType: text("published_type"),
     publishedHtml: text("published_html"),
     publishedText: text("published_text"),
