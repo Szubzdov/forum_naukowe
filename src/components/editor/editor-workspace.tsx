@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   ChevronDown,
+  FileUp,
+  Info,
   Loader2,
   Save,
   Send,
@@ -59,6 +61,10 @@ export function EditorWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [publishing, startPublishing] = useTransition();
+  const [importing, setImporting] = useState(false);
+  const [importInfo, setImportInfo] = useState<{ file: string; notes: string[] } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -74,7 +80,7 @@ export function EditorWorkspace({
       Superscript,
       Highlight,
       TableKit.configure({ table: { resizable: false } }),
-      Placeholder.configure({ placeholder: "Zacznij pisać lub wklej tekst z Worda…" }),
+      Placeholder.configure({ placeholder: "Zacznij pisać, wklej tekst z Worda albo prześlij plik…" }),
     ],
     content: (initial.contentJson as object | null) ?? (initial.contentHtml || ""),
     editorProps: {
@@ -89,7 +95,7 @@ export function EditorWorkspace({
   }) ?? 0;
 
   const textType = getTextType(type);
-  const busy = saving || publishing;
+  const busy = saving || publishing || importing;
 
   const payload = useCallback((): DraftInput | null => {
     if (!editor) return null;
@@ -147,6 +153,43 @@ export function EditorWorkspace({
     });
   };
 
+  // Prześlij plik Word/PDF → serwer zamienia go na HTML → treść trafia do edytora
+  const onImport = async (file: File | undefined) => {
+    if (!file || !editor) return;
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Plik jest za duży (maksymalnie 15 MB).");
+      return;
+    }
+    if (words > 0 && !window.confirm(`Zastąpić obecną treść dokumentu treścią z pliku „${file.name}”?`)) return;
+    setError(null);
+    setImportInfo(null);
+    setImporting(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/import", { method: "POST", body });
+      const data = (await res.json().catch(() => ({}))) as {
+        html?: string;
+        title?: string | null;
+        notes?: string[];
+        error?: string;
+      };
+      if (!res.ok || !data.html) {
+        setError(data.error ?? "Nie udało się wczytać pliku.");
+        return;
+      }
+      editor.chain().setContent(data.html, { emitUpdate: true }).focus("start").run();
+      if (!title.trim() && data.title) setTitle(data.title.slice(0, 200));
+      setDirty(true);
+      setImportInfo({ file: file.name, notes: data.notes ?? [] });
+    } catch {
+      setError("Nie udało się przesłać pliku. Sprawdź połączenie i spróbuj ponownie.");
+    } finally {
+      setImporting(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  };
+
   // Ctrl+S = zapisz szkic
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -184,6 +227,59 @@ export function EditorWorkspace({
               <ArrowLeft className="h-4 w-4" /> Mój folder
             </Link>
             <StatusPill published={published} />
+          </div>
+
+          <div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="hidden"
+              onChange={(e) => onImport(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                onImport(e.dataTransfer.files?.[0]);
+              }}
+              disabled={busy || !editor}
+              className={`flex w-full items-center gap-3 rounded-xl border-2 border-dashed px-4 py-3 text-left transition disabled:opacity-60 ${
+                dragOver ? "border-brand-500 bg-brand-50" : "border-line hover:border-brand-500 hover:bg-brand-50/50"
+              }`}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-ink">
+                  {importing ? "Wczytywanie pliku…" : "Prześlij plik"}
+                </span>
+                <span className="block text-xs text-muted">Word (.docx) lub PDF — albo przeciągnij go tutaj</span>
+              </span>
+            </button>
+            {importInfo && (
+              <div className="mt-2 flex gap-2 rounded-xl bg-sky-50 p-3 text-xs leading-relaxed text-sky-900 ring-1 ring-inset ring-sky-200">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p>
+                    Wczytano <strong>{importInfo.file}</strong>. Sprawdź treść i zapisz szkic.
+                  </p>
+                  {importInfo.notes.map((n) => (
+                    <p key={n} className="mt-1">
+                      {n}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <label className="block text-sm font-medium">

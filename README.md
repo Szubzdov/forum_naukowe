@@ -50,6 +50,7 @@ Konfiguracja — skopiuj `.env.example` do `.env.local` i uzupełnij:
 | Blur „UPS!” dla niezalogowanych — treść ucinana na serwerze | `src/app/wpis/[id]/page.tsx` (`buildPreview`) |
 | Logowanie i rejestracja (sesje w bazie, hasła bcrypt) | `src/lib/auth.ts`, `src/app/actions/auth.ts` |
 | Edytor (panel, podpowiedzi, pasek narzędzi jak w Wordzie) | `src/components/editor/` |
+| Przycisk „Prześlij plik”: Word (.docx) i PDF → treść w edytorze (plik nie jest zapisywany) | `src/app/api/import/route.ts`, `src/lib/import-document.ts` |
 | Zapis szkicu i publikacja | `src/app/actions/posts.ts` |
 | Mój folder (szkice i opublikowane) | `src/app/moj-folder/page.tsx` |
 | Pobieranie: Word i TXT generowane na serwerze | `src/app/wpis/[id]/pobierz/route.ts`, `src/lib/export-text.ts` |
